@@ -64,6 +64,7 @@ VARIANT_DEFCONFIG := $(TARGET_KERNEL_VARIANT_CONFIG)
 SELINUX_DEFCONFIG := $(TARGET_KERNEL_SELINUX_CONFIG)
 
 ## Internal variables
+DTBS_OUT := $(PRODUCT_OUT)/dtbs
 KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ
 KERNEL_CONFIG := $(KERNEL_OUT)/.config
 KERNEL_RELEASE := $(KERNEL_OUT)/include/config/kernel.release
@@ -162,10 +163,12 @@ KERNEL_MODULE_MOUNTPOINT := vendor
 endif
 MODULES_INTERMEDIATES := $(KERNEL_BUILD_OUT_PREFIX)$(call intermediates-dir-for,PACKAGING,kernel_modules)
 
+PATH_OVERRIDE := PATH=$(shell cat $(OUT_DIR)/.path_interposer_origpath):$$PATH
+
 PATH_OVERRIDE :=
 ifeq ($(TARGET_KERNEL_CLANG_COMPILE),true)
     ifneq ($(TARGET_KERNEL_CLANG_VERSION),)
-        KERNEL_CLANG_VERSION := clang-$(TARGET_KERNEL_CLANG_VERSION)
+        KERNEL_CLANG_VERSION := $(firstword $(shell find $(BUILD_TOP)/prebuilts/clang/host/$(HOST_OS)-x86/ -name AndroidVersion.txt -exec grep -l $(TARGET_KERNEL_CLANG_VERSION) "{}" \; | sed -e 's|/AndroidVersion.txt$$||g;s|^.*/||g'))
     else
         # Use the default version of clang if TARGET_KERNEL_CLANG_VERSION hasn't been set by the device config
         KERNEL_CLANG_VERSION := $(LLVM_PREBUILTS_VERSION)
@@ -180,7 +183,7 @@ ifeq ($(TARGET_KERNEL_CLANG_COMPILE),true)
     endif
     PATH_OVERRIDE += PATH=$(TARGET_KERNEL_CLANG_PATH)/bin:$$PATH LD_LIBRARY_PATH=$(TARGET_KERNEL_CLANG_PATH)/lib64:$$LD_LIBRARY_PATH
     ifeq ($(KERNEL_CC),)
-        KERNEL_CC := CC="$(CCACHE_BIN) clang"
+        KERNEL_CC := CC="$(CCACHE_BIN) $(TARGET_KERNEL_CLANG_PATH)/bin/clang"
     endif
 endif
 
@@ -190,16 +193,13 @@ endif
 
 PATH_OVERRIDE += PATH=$(KERNEL_TOOLCHAIN_PATH_gcc)/bin:$$PATH
 
-# System tools are no longer allowed on 10+
-PATH_OVERRIDE += $(TOOLS_PATH_OVERRIDE)
-
 KERNEL_ADDITIONAL_CONFIG_OUT := $(KERNEL_OUT)/.additional_config
 
 # Internal implementation of make-kernel-target
 # $(1): output path (The value passed to O=)
 # $(2): target to build (eg. defconfig, modules, dtbo.img)
 define internal-make-kernel-target
-$(PATH_OVERRIDE) $(KERNEL_MAKE_CMD) $(KERNEL_MAKE_FLAGS) -C $(KERNEL_SRC) O=$(KERNEL_BUILD_OUT_PREFIX)$(1) ARCH=$(KERNEL_ARCH) $(KERNEL_CROSS_COMPILE) $(KERNEL_CLANG_TRIPLE) $(KERNEL_CC) $(2)
+$(PATH_OVERRIDE) $(MAKE_PREBUILT) $(KERNEL_MAKE_FLAGS) -C $(KERNEL_SRC) O=$(KERNEL_BUILD_OUT_PREFIX)$(1) ARCH=$(KERNEL_ARCH) $(KERNEL_CROSS_COMPILE) $(KERNEL_CLANG_TRIPLE) $(KERNEL_CC) $(2)
 endef
 
 # Make a kernel target
@@ -212,6 +212,12 @@ endef
 # $(1): The DTBO target to build (eg. dtbo.img, defconfig)
 define make-dtbo-target
 $(call internal-make-kernel-target,$(PRODUCT_OUT)/dtbo,$(1))
+endef
+
+# Make a DTB targets
+# $(1): The DTB target to build (eg. dtbs, defconfig)
+define make-dtb-target
+$(call internal-make-kernel-target,$(DTBS_OUT),$(1))
 endef
 
 $(KERNEL_OUT):
@@ -236,7 +242,7 @@ $(KERNEL_CONFIG): $(KERNEL_DEFCONFIG_SRC) $(KERNEL_ADDITIONAL_CONFIG_OUT)
 			$(call make-kernel-target,KCONFIG_ALLCONFIG=$(KERNEL_OUT)/.config alldefconfig); \
 		fi
 
-$(TARGET_PREBUILT_INT_KERNEL): $(KERNEL_CONFIG)
+$(TARGET_PREBUILT_INT_KERNEL): $(KERNEL_CONFIG) $(DEPMOD)
 	@echo "Building Kernel"
 	$(call make-kernel-target,$(BOARD_KERNEL_IMAGE_NAME))
 	$(hide) if grep -q '^CONFIG_OF=y' $(KERNEL_CONFIG); then \
@@ -270,7 +276,6 @@ alldefconfig: $(KERNEL_OUT)
 		 $(call make-kernel-target,alldefconfig)
 
 ifeq ($(TARGET_NEEDS_DTBOIMAGE),true)
-BOARD_PREBUILT_DTBOIMAGE = $(PRODUCT_OUT)/dtbo/arch/$(KERNEL_ARCH)/boot/dtbo.img
 $(BOARD_PREBUILT_DTBOIMAGE):
 	echo -e ${CL_GRN}"Building DTBO.img"${CL_RST}
 	$(call make-dtbo-target,$(KERNEL_DEFCONFIG))
@@ -298,5 +303,17 @@ kernel: $(INSTALLED_KERNEL_TARGET)
 
 .PHONY: dtboimage
 dtboimage: $(INSTALLED_DTBOIMAGE_TARGET)
+
+ifeq ($(BOARD_INCLUDE_DTB_IN_BOOTIMG),true)
+ifeq ($(BOARD_PREBUILT_DTBIMAGE_DIR),)
+$(INSTALLED_DTBIMAGE_TARGET):
+	echo -e ${CL_GRN}"Building DTBs"${CL_RST}
+	$(call make-dtb-target,$(KERNEL_DEFCONFIG))
+	$(call make-dtb-target,dtbs)
+	cat $(shell find $(DTBS_OUT)/arch/$(KERNEL_ARCH)/boot/dts/** -type f -name "*.dtb" | sort) > $@
+endif
+.PHONY: dtbimage
+dtbimage: $(INSTALLED_DTBIMAGE_TARGET)
+endif # BOARD_INCLUDE_DTB_IN_BOOTIMG
 
 endif # TARGET_NO_KERNEL
