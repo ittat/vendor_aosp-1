@@ -1,4 +1,4 @@
-PRODUCT_BRAND ?= aosp
+PRODUCT_BRAND ?= b2g
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
@@ -64,30 +64,11 @@ PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
 PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
     media.recorder.show_manufacturer_and_model=true
 
-PRODUCT_ENFORCE_RRO_EXCLUDED_OVERLAYS += vendor/aosp/overlay
-DEVICE_PACKAGE_OVERLAYS += vendor/aosp/overlay/common
+PRODUCT_ENFORCE_RRO_EXCLUDED_OVERLAYS += vendor/b2g/overlay
+DEVICE_PACKAGE_OVERLAYS += vendor/b2g/overlay/common
 
-# Accents
-PRODUCT_PACKAGES += \
-    BlackAccent \
-    BlackTheme \
-    BlueAccent \
-    BrownAccent \
-    CyanAccent \
-    DarkTheme \
-    GreenAccent \
-    OrangeAccent \
-    PinkAccent \
-    PurpleAccent \
-    RedAccent \
-    YellowAccent
-
-# Themes
-PRODUCT_PACKAGES += \
-    ThemePicker \
-    ThemesStub
 
 # Branding
-include vendor/aosp/config/branding.mk
+include vendor/b2g/config/branding.mk
 
 -include $(WORKSPACE)/build_env/image-auto-bits.mk
