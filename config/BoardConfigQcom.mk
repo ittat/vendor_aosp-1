@@ -107,6 +107,6 @@ else ifeq ($(QCOM_HARDWARE_VARIANT),sm8150)
 endif
 
 ifneq ($(FROM_SOONG),true)
-PRODUCT_SOONG_NAMESPACES += \
-    hardware/qcom-caf/$(QCOM_HARDWARE_VARIANT)
+#PRODUCT_SOONG_NAMESPACES += \
+#    hardware/qcom-caf/$(QCOM_HARDWARE_VARIANT)
 endif
