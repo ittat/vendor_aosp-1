@@ -64,8 +64,8 @@ PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
 PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
     media.recorder.show_manufacturer_and_model=true
 
-PRODUCT_ENFORCE_RRO_EXCLUDED_OVERLAYS += vendor/b2g/overlay
-DEVICE_PACKAGE_OVERLAYS += vendor/b2g/overlay/common
+#PRODUCT_ENFORCE_RRO_EXCLUDED_OVERLAYS += vendor/b2g/overlay
+#DEVICE_PACKAGE_OVERLAYS += vendor/b2g/overlay/common
 
 
 # Branding
