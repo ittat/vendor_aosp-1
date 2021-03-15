@@ -2,11 +2,6 @@ PRODUCT_BRAND ?= b2g
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
-# Default notification/alarm sounds
-PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
-    ro.config.notification_sound=pixiedust.ogg \
-    ro.config.alarm_alert=Alarm_Classic.ogg
-
 ifeq ($(TARGET_BUILD_VARIANT),eng)
 # Disable ADB authentication
 PRODUCT_SYSTEM_DEFAULT_PROPERTIES += ro.adb.secure=0
@@ -63,10 +58,6 @@ PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
 # Media
 PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
     media.recorder.show_manufacturer_and_model=true
-
-#PRODUCT_ENFORCE_RRO_EXCLUDED_OVERLAYS += vendor/b2g/overlay
-#DEVICE_PACKAGE_OVERLAYS += vendor/b2g/overlay/common
-
 
 # Branding
 include vendor/b2g/config/branding.mk
